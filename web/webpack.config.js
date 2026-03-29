@@ -15,7 +15,7 @@ module.exports = {
         }),
         new WasmPackPlugin({
             crateDirectory: path.resolve(__dirname, "../"),
-            outDir: path.resolve(__dirname, "gameboy"),
+            outDir: path.resolve(__dirname, "../pkg"),
         }),
         new webpack.ProvidePlugin({
           TextDecoder: ['text-encoding', 'TextDecoder'],

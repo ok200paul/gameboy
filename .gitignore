@@ -2,6 +2,7 @@ roms
 target
 node_modules
 Cargo.lock
+.idea
 
 **/*.a
 **/*.gb
