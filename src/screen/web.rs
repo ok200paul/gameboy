@@ -14,8 +14,41 @@ use web_sys::{CanvasRenderingContext2d, ImageData};
 
 use std::panic;
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
 fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
+}
+
+/// Activate the emulator with a RunLicense license. Verifies the license,
+/// then mounts the full Game Boy UI into the target element.
+/// If `target_id` is `None`, defaults to `"game"`.
+#[wasm_bindgen]
+pub fn activate(license_json: &str, target_id: Option<String>) {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+
+    let license_json = license_json.to_string();
+    let target_id = target_id.clone();
+    wasm_bindgen_futures::spawn_local(async move {
+        log("[gameboy] Validating license...");
+        let result = runlicense_sdk_webassembly_rust::verify_license!(&license_json).await;
+
+        match result {
+            Ok(_token) => {
+                log("[gameboy] License activated successfully");
+                if let Err(e) = mount_inner(target_id) {
+                    log(&format!("[gameboy] Failed to mount UI: {:?}", e));
+                }
+            }
+            Err(e) => {
+                log(&format!("[gameboy] License verification failed: {:?}", e));
+            }
+        }
+    });
 }
 
 fn request_animation_frame(f: &Closure<dyn FnMut()>) {
@@ -250,13 +283,8 @@ fn start_emulation(
     Ok(())
 }
 
-/// Build the full Game Boy UI inside the target element and wire up file
-/// input + play button. Call with a target element ID (e.g. `"environment"`).
-/// If `target_id` is `None`, defaults to `"game"`.
-#[wasm_bindgen]
-pub fn mount(target_id: Option<String>) -> Result<(), JsValue> {
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
-
+/// Inner mount logic shared by `mount` and `activate`.
+fn mount_inner(target_id: Option<String>) -> Result<(), JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
     let container_id = target_id.as_deref().unwrap_or("game");
     let container = document
@@ -336,6 +364,15 @@ pub fn mount(target_id: Option<String>) -> Result<(), JsValue> {
     }
 
     Ok(())
+}
+
+/// Build the full Game Boy UI inside the target element and wire up file
+/// input + play button. No license check — use `activate` for licensed access.
+/// If `target_id` is `None`, defaults to `"game"`.
+#[wasm_bindgen]
+pub fn mount(target_id: Option<String>) -> Result<(), JsValue> {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    mount_inner(target_id)
 }
 
 /// Direct render with a ROM already in memory. Injects UI into target element

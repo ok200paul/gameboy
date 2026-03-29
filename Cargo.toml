@@ -7,6 +7,12 @@ repository = "https://github.com/raphamorim/gameboy"
 license = "MPL-2.0"
 edition = "2021"
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
 [lib]
 name = "gameboy"
 path = "src/lib.rs"
